@@ -8,7 +8,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:unit": "jest",
-    "test:unit:ci": "jest --coverage --json --outputFile=reports/unit-results.json --reporters=default --reporters=jest-junit",
+    "test:unit:ci": "mkdir -p reports && jest --coverage --json --outputFile=reports/unit-results.json --reporters=default --reporters=jest-junit",
     "test:functional": "npm run build:catalog && playwright test",
     "test:ci": "npm run test:unit:ci && npm run test:functional",
     "build:catalog": "python3 scripts/build_catalog.py",

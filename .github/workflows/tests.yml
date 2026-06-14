@@ -32,10 +32,11 @@ on:
           - 'true'
           - 'false'
 
-  # Execução agendada: domingo, segunda e terça às 20h em America/Sao_Paulo.
-  # GitHub Actions usa UTC; 20h BRT (UTC-3) = 23h UTC.
   schedule:
-    - cron: '0 23 * * 0,1,2'
+      # 23:20 UTC = 20:20 Horário de Brasília
+      # Dias: 0 (Domingo), 1 (Segunda), 3 (Quarta)
+      # Mês: 6 (Junho) (Deixei execução apenas no mes 6. pois se eu esquecer de desligar após validação do trabalho, a partir do mês seguinte ele não executa mais, evitando execuções indesejadas no futuro. Até chegar mes 6 de 2027 kkk )
+      - cron: '20 23 * 6 0,1,3'
 
 # ── Permissões mínimas necessárias ────────────────────────────────────────────
 permissions:
@@ -104,13 +105,21 @@ jobs:
           fail-on-error: false   # não re-falha; o step "Resultado final" já sinaliza a falha
 
       - name: 🎭 Instalar navegadores do Playwright
+        id: playwright_install
+        continue-on-error: true
         run: npx playwright install --with-deps chromium
 
       # 6. Testes funcionais Playwright
       - name: 🎭 Executar testes funcionais
         id: functional_tests
+        if: always()
         continue-on-error: true
-        run: npm run test:functional
+        run: |
+          if [ "${{ steps.playwright_install.outcome }}" != "success" ]; then
+            echo "Instalação do Playwright falhou; marcando testes funcionais como falha para manter relatório, artefatos e email."
+            exit 1
+          fi
+          npm run test:functional
 
       - name: 📋 Publicar relatório funcional (Playwright)
         if: always()
