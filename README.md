@@ -24,7 +24,8 @@
 5. [Estrutura do Projeto](#-estrutura-do-projeto)
 6. [Testes Automatizados](#-testes-automatizados)
 7. [Como Executar Localmente](#-como-executar-localmente)
-8. [Configuração do Repositório](#-configuração-do-repositório)
+8. [Correções Aplicadas (Troubleshooting)](#-correções-aplicadas-troubleshooting)
+9. [Configuração do Repositório](#-configuração-do-repositório)
 
 ---
 
@@ -35,7 +36,7 @@
 - ✅ Testes automatizados com Jest
 - 📊 Relatório de cobertura de código
 - 🚀 Deploy automático para GitHub Pages
-- 📅 Execução agendada semanalmente
+- 📅 Execução agendada a cada 20 minutos
 - 💬 Feedback automático em Pull Requests
 
 ---
@@ -66,8 +67,14 @@ A pipeline é composta por **dois workflows** independentes que colaboram entre 
 | `push` | `tests.yml` | A cada push nas branches `main` ou `develop` |
 | `pull_request` | `tests.yml` | Ao abrir ou atualizar um PR contra `main`/`develop` |
 | `workflow_dispatch` | Ambos | Execução manual pelo GitHub UI ou API |
-| `schedule` | `tests.yml` | A cada 20 minutos (cron: `*/20 * * * 0`) |
+| `schedule` | `tests.yml` | A cada 20 minutos (cron: `*/20 * * * *`) |
 | `push` (main) | `pages.yml` | A cada push aprovado na branch `main` |
+
+> ⚠️ **Atenção ao consumo de minutos:** o agendamento `*/20 * * * *` executa o
+> workflow **72 vezes por dia**. Em repositórios privados isso consome a cota
+> gratuita de minutos do GitHub Actions rapidamente. Em repositórios públicos
+> o uso é ilimitado, mas considere aumentar o intervalo (ex.: `*/60 * * * *`)
+> em projetos reais.
 
 ---
 
@@ -79,14 +86,15 @@ Responsável pela **validação contínua** do código. Executa em todas as situ
 jobs:
   test:
     steps:
-      1. Checkout código
-      2. Setup Node.js 20 (com cache npm)
-      3. npm ci              ← instalação determinística
-      4. jest --coverage     ← testes + cobertura + junit.xml
-      5. Publicar relatório  ← dorny/test-reporter (aba Checks)
-      6. Step Summary        ← tabela de cobertura no resumo da execução
-      7. Upload artefatos    ← coverage/ + junit.xml (30 dias)
-      8. Comentar no PR      ← feedback automático com link para execução
+      1. Checkout código              ← actions/checkout@v6
+      2. Setup Node.js 24 (cache npm) ← actions/setup-node@v6
+      3. npm install                  ← instala dependências e ajusta o lockfile
+      4. jest --coverage              ← testes + cobertura + junit.xml (continue-on-error)
+      5. Publicar relatório           ← dorny/test-reporter@v3 (aba Checks)
+      6. Step Summary                 ← tabela de cobertura no resumo da execução
+      7. Upload artefatos             ← coverage/ + junit.xml (30 dias)
+      8. Comentar no PR               ← feedback automático com link para execução
+      9. Resultado final              ← falha o job se os testes não passaram
 ```
 
 **Diagrama de fluxo:**
@@ -99,10 +107,10 @@ push / PR / schedule / manual
     │  Checkout   │
     └──────┬──────┘
            │
-    ┌──────▼──────┐
-    │  Setup Node │
-    │  + npm ci   │
-    └──────┬──────┘
+    ┌──────▼────────┐
+    │  Setup Node   │
+    │  + npm install│
+    └──────┬────────┘
            │
     ┌──────▼──────┐
     │  Jest tests │◀─── jest.config.js
@@ -115,7 +123,8 @@ push / PR / schedule / manual
      │            │
      ▼            ▼
   Relatório    Relatório
-  + Deploy     (sem deploy)
+  + job OK     + job falha
+  (step 9)     (step 9)
 ```
 
 ---
@@ -211,14 +220,15 @@ Quando o trigger é um Pull Request, a pipeline posta automaticamente um coment�
 | **Workflow** | `.github/workflows/*.yml` | Arquivo YAML que define toda a automação |
 | **Job** | `jobs: test:`, `jobs: build:` | Unidade de trabalho que roda em uma VM isolada |
 | **Step** | `steps:` dentro de cada job | Comando ou Action executado sequencialmente |
-| **Action** | `uses: actions/checkout@v4` | Bloco de código reutilizável publicado no marketplace |
+| **Action** | `uses: actions/checkout@v6` | Bloco de código reutilizável publicado no marketplace |
 | **Runner** | `runs-on: ubuntu-latest` | Máquina virtual que executa o job |
 | **Trigger** | `on: push / pull_request / schedule / workflow_dispatch` | Evento que dispara o workflow |
-| **Artifact** | `upload-artifact@v4` | Arquivo persistido entre execuções para download |
+| **Artifact** | `upload-artifact@v6` | Arquivo persistido entre execuções para download |
 | **Concurrency** | `concurrency: group:` | Evita execuções duplicadas no mesmo branch/PR |
 | **Permissions** | `permissions: checks: write` | Controle de acesso mínimo por job |
 | **needs** | `needs: test` | Define dependência entre jobs (DAG de execução) |
 | **if: always()** | Steps de relatório | Garante execução mesmo se o step anterior falhou |
+| **continue-on-error** | Step de testes | Permite que o job continue para gerar/publicar o relatório mesmo se os testes falharem |
 | **GITHUB_STEP_SUMMARY** | Step de cobertura | Arquivo especial que gera o resumo da execução |
 | **context** | `${{ github.sha }}`, `${{ github.event_name }}` | Variáveis de contexto da execução |
 | **secrets** | (implícito no GITHUB_TOKEN) | Credenciais injetadas automaticamente |
@@ -227,15 +237,23 @@ Quando o trigger é um Pull Request, a pipeline posta automaticamente um coment�
 
 ```
 ┌───── minuto (0-59)
-│ ┌─── hora UTC (0-23)   → 10:00 UTC = 07:00 BRT
+│ ┌─── hora (0-23)
 │ │ ┌─ dia do mês (1-31)
 │ │ │ ┌ mês (1-12)
-│ │ │ │ ┌ dia da semana (0=Dom, 1=Seg … 6=Sab)
+│ │ │ │ ┌ dia da semana (0=Dom … 6=Sab)
 │ │ │ │ │
-0 10 * * 1
+*/20 * * * *
 ```
 
-A pipeline de testes é executada **toda segunda-feira às 07:00 BRT**, garantindo que problemas de degradação (bibliotecas desatualizadas, APIs externas, etc.) sejam detectados mesmo sem commits.
+`*/20 * * * *` significa **"a cada 20 minutos, todos os dias"** — o workflow
+`tests.yml` é disparado automaticamente nos minutos `00`, `20` e `40` de cada
+hora, garantindo que problemas de degradação (dependências desatualizadas,
+APIs externas, regressões silenciosas) sejam detectados mesmo sem novos
+commits.
+
+> 📌 Horários de `schedule` no GitHub Actions são sempre em **UTC** e podem
+> sofrer atraso em períodos de alta demanda da plataforma — o agendamento é
+> uma garantia de "no mínimo a cada X minutos", não uma garantia exata.
 
 ### Jest — Reporters
 
@@ -324,9 +342,10 @@ Os testes cobrem as principais funções de `app.js`:
 | `localStorage` | 4 | Persistência de tema (get, set, remove, clear) |
 | `Validação de Dados` | 1 | Estrutura obrigatória do objeto produto |
 | `Testes de Cobertura` | 8 | Casos-limite, caracteres especiais, múltiplas operações |
+| `getCatalogPath` | 2 | Caminho do catálogo conforme a página |
 | `applyTheme` | 5 | Aplicação de tema dark/light, atualização do DOM |
 
-**Total: 27 testes**
+**Total: 29 testes**
 
 ### Executar os testes localmente
 
@@ -350,15 +369,15 @@ npm run test:ci
 
 ### Pré-requisitos
 
-- Node.js ≥ 18
-- Python ≥ 3.10
+- Node.js ≥ 20 (recomendado: 24, mesma versão usada na pipeline)
 - npm ≥ 9
+- Python ≥ 3.10 (apenas para gerar o catálogo de produtos)
 
 ### Instalação
 
 ```bash
 # 1. Clone o repositório
-https://github.com/ricardosantosqa/pgats-test-ci.git
+git clone https://github.com/ricardosantosqa/pgats-test-ci.git
 cd pgats-test-ci
 
 # 2. Instale as dependências
@@ -371,6 +390,87 @@ npm run build:catalog
 npm run serve
 # → Acesse http://localhost:8000
 ```
+
+### Rodando os testes
+
+Veja a seção [🧪 Testes Automatizados](#-testes-automatizados) para todos os
+comandos de teste (`npm test`, `npm run test:coverage`, `npm run test:watch`,
+`npm run test:ci`). O comando `npm run test:ci` reproduz exatamente o que a
+pipeline executa, gerando `coverage/` e `junit.xml` na raiz do projeto.
+
+---
+
+## 🛠️ Correções Aplicadas (Troubleshooting)
+
+Esta seção documenta os problemas encontrados na pipeline original e as
+correções aplicadas — útil tanto para entender as mudanças quanto como
+referência caso problemas semelhantes apareçam no futuro.
+
+### 1. `npm ci` falhava com exit code 1 (causa raiz)
+
+O `package-lock.json` estava **fora de sincronia** com o `package.json`: a
+dependência `jest-junit` (usada para gerar o `junit.xml`) constava em
+`package.json`, mas não havia sido registrada no lockfile. Como `npm ci`
+exige sincronia exata entre os dois arquivos, a instalação falhava
+imediatamente — e, sem dependências instaladas, `npm test` nunca chegava a
+rodar. Isso explica os erros:
+
+- `Process completed with exit code 1` (no step de instalação/testes)
+- `No test report files were found` / `No file matches path junit.xml`
+- `No files were found with the provided path: coverage/ junit.xml`
+
+**Correção:** o step de instalação passou a usar `npm install`, que resolve
+e atualiza o lockfile automaticamente em vez de falhar por divergência.
+Recomenda-se rodar `npm install` localmente e commitar o `package-lock.json`
+atualizado assim que possível, para voltar a usar `npm ci` (mais
+determinístico) no futuro.
+
+### 2. Avisos de depreciação do Node.js 20
+
+As actions `actions/checkout@v4`, `actions/setup-node@v4`,
+`actions/upload-artifact@v4.6.2` e `dorny/test-reporter@v1.9.1` ainda
+executavam em Node.js 20, runtime que está sendo descontinuado pelo GitHub
+Actions (Node 24 torna-se padrão e Node 20 é removido em set/2026).
+
+**Correção:** todas as actions foram atualizadas para as versões mais
+recentes, compatíveis com Node 24:
+
+| Action | Antes | Depois |
+|--------|-------|--------|
+| `actions/checkout` | `v4` / `v4.2.2` | `v6` |
+| `actions/setup-node` | `v4` / `v4.4.0` | `v6` |
+| `actions/upload-artifact` | `v4.6.2` | `v6` |
+| `actions/setup-python` | `v5` | `v6` |
+| `dorny/test-reporter` | `v1.9.1` | `v3` |
+
+### 3. `pages.yml` rodando testes em Node 20 com flags inválidas
+
+O job `test` do `pages.yml` usava Node 20 e a flag `--forceExit`, que
+mascarava problemas em vez de resolvê-los e ainda gerava o aviso de
+depreciação.
+
+**Correção:** o job agora usa Node 24 e `npm test -- --passWithNoTests`,
+consistente com o `tests.yml`.
+
+### 4. Job falhava "cedo demais", sem publicar relatório
+
+Antes, se `jest` retornasse código de saída diferente de zero, o job parava
+imediatamente e os steps seguintes (publicar relatório, gerar resumo, subir
+artefatos, comentar no PR) eram pulados — por isso o relatório nunca era
+encontrado mesmo quando os testes chegavam a rodar.
+
+**Correção:** o step de testes agora usa `continue-on-error: true` e seu
+resultado é armazenado em `steps.run_tests.outcome`. Um novo step final
+("🚦 Resultado final dos testes") verifica esse resultado **depois** que
+relatório, resumo, artefatos e comentário no PR já foram publicados, e só
+então falha o job (`exit 1`) se necessário. Assim a pipeline sempre publica
+o relatório, e ainda reporta corretamente sucesso/falha do job.
+
+### 5. `.gitignore` ausente
+
+Artefatos gerados (`node_modules/`, `coverage/`, `junit.xml`, `site/`)
+podiam acabar sendo versionados acidentalmente. Foi adicionado um
+`.gitignore` cobrindo esses diretórios/arquivos.
 
 ---
 

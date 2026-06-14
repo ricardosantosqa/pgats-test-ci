@@ -56,25 +56,34 @@ jobs:
     steps:
       # 1. Código-fonte
       - name: 📥 Checkout código
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v6
 
       # 2. Ambiente Node.js com cache automático do npm
       - name: 🟢 Setup Node.js 24
-        uses: actions/setup-node@v4.4.0
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
 
-      # 3. Instalar dependências (incluindo jest-junit)
+      # 3. Instalar dependências
+      #    Usamos "npm install" (em vez de "npm ci") porque o projeto evolui
+      #    com frequência e o lockfile pode ficar temporariamente desatualizado
+      #    em relação ao package.json. "npm install" resolve e atualiza o
+      #    lockfile automaticamente, evitando falhas de sincronia no CI.
       - name: 📦 Instalar dependências
-        run: npm ci
+        run: npm install
 
       # 4. Testes + cobertura + relatório JUnit
+      #    continue-on-error garante que os passos seguintes (publicação do
+      #    relatório e upload de artefatos) executem mesmo se algum teste falhar.
+      #    A falha real do job é refletida no step "Resultado final dos testes".
       - name: 🧪 Executar testes com cobertura
+        id: run_tests
+        continue-on-error: true
         run: |
           EXTRA=""
           if [ "${{ github.event.inputs.debug }}" = "true" ]; then EXTRA="--verbose"; fi
-          npm test -- --coverage --forceExit $EXTRA
+          npm test -- --coverage $EXTRA
         env:
           JEST_JUNIT_OUTPUT_DIR: '.'
           JEST_JUNIT_OUTPUT_NAME: 'junit.xml'
@@ -82,12 +91,12 @@ jobs:
       # 5. Publica o relatório JUnit na aba "Checks" do GitHub
       - name: 📋 Publicar relatório de testes (Test Reporter)
         if: always()   # executa mesmo se os testes falharem
-        uses: dorny/test-reporter@v1.9.1
+        uses: dorny/test-reporter@v3
         with:
           name: 'Relatório Jest'
           path: 'junit.xml'
           reporter: jest-junit
-          fail-on-error: false   # não re-falha; a etapa de testes já sinaliza a falha
+          fail-on-error: false   # não re-falha; o step "Resultado final" já sinaliza a falha
 
       # 6. Resumo rico no GitHub Step Summary
       - name: 📊 Resumo de cobertura no Step Summary
@@ -96,7 +105,7 @@ jobs:
           echo "## 🧪 Resultado dos Testes" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ job.status }}" = "success" ]; then
+          if [ "${{ steps.run_tests.outcome }}" = "success" ]; then
             echo "### ✅ Todos os testes passaram!" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Há testes falhando — veja os logs acima." >> $GITHUB_STEP_SUMMARY
@@ -130,7 +139,7 @@ jobs:
       #    Retidos por 30 dias; baixáveis na aba "Artifacts" da execução
       - name: 📁 Upload artefatos de teste
         if: always()
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v6
         with:
           name: test-report-${{ github.run_number }}
           path: |
@@ -145,7 +154,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const success = '${{ job.status }}' === 'success';
+            const success = '${{ steps.run_tests.outcome }}' === 'success';
             const icon    = success ? '✅' : '❌';
             const status  = success ? 'PASSOU' : 'FALHOU';
             const sha     = context.sha.substring(0, 7);
@@ -171,3 +180,15 @@ jobs:
               repo:         context.repo.repo,
               body,
             });
+
+      # 9. Resultado final: faz o job falhar de fato se os testes falharam.
+      #    Executado por último para garantir que relatório, resumo, artefatos
+      #    e comentário no PR já tenham sido publicados antes do job falhar.
+      - name: 🚦 Resultado final dos testes
+        if: always()
+        run: |
+          if [ "${{ steps.run_tests.outcome }}" != "success" ]; then
+            echo "❌ A etapa de testes falhou. Verifique o relatório e os artefatos publicados."
+            exit 1
+          fi
+          echo "✅ Testes executados com sucesso."

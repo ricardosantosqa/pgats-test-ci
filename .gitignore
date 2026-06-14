@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+
+# Relatórios de teste e cobertura (gerados pelo CI)
+coverage/
+junit.xml
+
+# Build do site (gerado pelo workflow de deploy)
+site/
+
+# Diversos
+products/.DS_Store
+.DS_Store
+*.log
