@@ -1,4 +1,4 @@
-# Pipeline de Testes Automatizados - Ricardo Santos 
+# Pipeline de Testes Automatizados - Ricardo Santos
 #
 # CI Executado em:
 #   • push para main ou develop
@@ -33,16 +33,16 @@ on:
           - 'false'
 
   schedule:
-      # 23:20 UTC = 20:20 Horário de Brasília
-      # Dias: 0 (Domingo), 1 (Segunda), 3 (Quarta)
-      # Mês: 6 (Junho) (Deixei execução apenas no mes 6. pois se eu esquecer de desligar após validação do trabalho, a partir do mês seguinte ele não executa mais, evitando execuções indesejadas no futuro. Até chegar mes 6 de 2027 kkk )
-      - cron: '44 23 * 6 0,1,3'
+    # 23:20 UTC = 20:20 Horário de Brasília
+    # Dias: 0 (Domingo), 1 (Segunda), 3 (Quarta)
+    # Mês: 6 (Junho) (Deixei execução apenas no mes 6. pois se eu esquecer de desligar após validação do trabalho, a partir do mês seguinte ele não executa mais, evitando execuções indesejadas no futuro. Até chegar mes 6 de 2027 kkk )
+    - cron: '44 23 * 6 0,1,3'
 
 # ── Permissões mínimas necessárias ────────────────────────────────────────────
 permissions:
-  contents: read      # checkout do repositório
-  checks: write       # publicar resultado de testes na aba Checks
-  pull-requests: write  # comentar resultado em PRs
+  contents: read # checkout do repositório
+  checks: write # publicar resultado de testes na aba Checks
+  pull-requests: write # comentar resultado em PRs
 
 # ── Cancelar execuções duplicadas no mesmo branch/PR ──────────────────────────
 concurrency:
@@ -96,13 +96,13 @@ jobs:
 
       # 5. Publica o relatório JUnit na aba "Checks" do GitHub
       - name: 📋 Publicar relatório de testes (Test Reporter)
-        if: always()   # executa mesmo se os testes falharem
+        if: always() # executa mesmo se os testes falharem
         uses: dorny/test-reporter@v3
         with:
           name: 'Relatório Jest'
           path: 'junit.xml'
           reporter: jest-junit
-          fail-on-error: false   # não re-falha; o step "Resultado final" já sinaliza a falha
+          fail-on-error: false # não re-falha; o step "Resultado final" já sinaliza a falha
 
       - name: 🎭 Instalar navegadores do Playwright
         id: playwright_install
