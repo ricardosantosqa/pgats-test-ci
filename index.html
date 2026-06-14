@@ -174,7 +174,7 @@
       </div>
 
       <div class="category-filters" id="category-filters" aria-label="Filtros de categoria">
-        <button class="category-filter active" data-category="all">
+        <button class="category-filter active" data-category="todos">
           <span class="category-icon">🏷️</span>
           <span class="category-label">Todos</span>
         </button>
@@ -352,7 +352,7 @@
           <div>
             <h4 class="footer-col-title">Categorias</h4>
             <ul class="footer-links">
-              <li><a href="#catalogo" data-category-link="all">🏷️ Todos Produtos</a></li>
+              <li><a href="#catalogo" data-category-link="todos">🏷️ Todos Produtos</a></li>
               <li><a href="#catalogo" data-category-link="tecnologia">💻 Tecnologia</a></li>
               <li><a href="#catalogo" data-category-link="casa">🏠 Casa</a></li>
               <li><a href="#catalogo" data-category-link="decoracao">🪴 Decoração</a></li>
@@ -406,73 +406,7 @@
   </footer>
 
 
-  <script>
-    (function () {
-      var t = localStorage.getItem('usadosdequalidade-theme');
-      document.documentElement.dataset.theme =
-        t !== null ? t : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    })();
-  </script>
-
-  <!-- No final do <body>, substituindo o script antigo -->
-  <script>
-    // ── Tema ──────────────────────────────────────────────────────────────
-    const THEME_KEY = 'usadosdequalidade-theme';
-
-    function applyTheme(theme) {
-      document.documentElement.dataset.theme = theme;
-      const toggle = document.querySelector('.theme-toggle');
-      if (!toggle) return;
-      const isDark = theme === 'dark';
-      toggle.setAttribute('aria-pressed', String(!isDark));
-      toggle.querySelector('.theme-toggle__icon').textContent = isDark ? '☀' : '☾';
-      toggle.querySelector('.theme-toggle__label').textContent = isDark ? 'Tema claro' : 'Tema escuro';
-    }
-
-    // Garante que o botão reflita o tema já aplicado pelo script do <head>
-    applyTheme(document.documentElement.dataset.theme || 'dark');
-
-    document.querySelector('.theme-toggle')?.addEventListener('click', () => {
-      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem(THEME_KEY, next);
-      applyTheme(next);
-    });
-
-    // Sincroniza entre abas abertas simultaneamente
-    window.addEventListener('storage', (e) => {
-      if (e.key === THEME_KEY && e.newValue) applyTheme(e.newValue);
-    });
-
-    // ── Filtros de categoria ───────────────────────────────────────────────
-    function applyFilter(cat) {
-      const filters = document.querySelectorAll('.category-filter');
-      const cards = document.querySelectorAll('.product-card');
-
-      filters.forEach(b => {
-        const isActive = b.dataset.category === cat;
-        b.classList.toggle('active', isActive);
-        b.setAttribute('aria-pressed', String(isActive));
-      });
-
-      cards.forEach(card => {
-        card.style.display = (cat === 'all' || card.dataset.category === cat) ? '' : 'none';
-      });
-    }
-
-    document.querySelectorAll('.category-filter').forEach(btn => {
-      btn.addEventListener('click', () => applyFilter(btn.dataset.category));
-    });
-
-    // ── Links do footer filtram o catálogo ────────────────────────────────
-    document.addEventListener('click', event => {
-      const link = event.target.closest('[data-category-link]');
-      if (!link) return;
-      event.preventDefault();
-      const cat = link.dataset.categoryLink;
-      applyFilter(cat);
-      document.querySelector('#catalogo')?.scrollIntoView({ behavior: 'smooth' });
-    });
-  </script>
+  <script src="./app.js" defer></script>
 
 </body>
 

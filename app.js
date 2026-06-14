@@ -168,7 +168,7 @@ function renderFooter(product) {
           <div>
             <h4 class="footer-col-title">Categorias</h4>
             <ul class="footer-links">
-              <li><a href="#catalogo" data-category-link="all">🏷️ Todos Produtos</a></li>
+              <li><a href="#catalogo" data-category-link="todos">🏷️ Todos Produtos</a></li>
               <li><a href="#catalogo" data-category-link="tecnologia">💻 Tecnologia</a></li>
               <li><a href="#catalogo" data-category-link="casa">🏠 Casa</a></li>
               <li><a href="#catalogo" data-category-link="decoracao">🪴 Decoração</a></li>
