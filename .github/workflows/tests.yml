@@ -1,7 +1,6 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# Pipeline de Testes Automatizados — Usados de Qualidade
+# Pipeline de Testes Automatizados - Ricardo Santos 
 #
-# Executado em:
+# CI Executado em:
 #   • push para main ou develop
 #   • pull_request contra main ou develop
 #   • disparo manual (workflow_dispatch)
@@ -33,9 +32,9 @@ on:
           - 'true'
           - 'false'
 
-  # Execução agendada: toda segunda-feira às 07:00 BRT (10:00 UTC)
+  # Execução agendada: a cada 20 minutos
   schedule:
-    - cron: '0 10 * * 1'
+    - cron: '*/20 * * * 0'
 
 # ── Permissões mínimas necessárias ────────────────────────────────────────────
 permissions:
@@ -77,8 +76,6 @@ jobs:
         env:
           JEST_JUNIT_OUTPUT_DIR: '.'
           JEST_JUNIT_OUTPUT_NAME: 'junit.xml'
-          # Ativa logs extras se o usuário pediu modo debug
-          VERBOSE: ${{ github.event.inputs.debug == 'true' && '--verbose' || '' }}
 
       # 5. Publica o relatório JUnit na aba "Checks" do GitHub
       - name: 📋 Publicar relatório de testes (Test Reporter)

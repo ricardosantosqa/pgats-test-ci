@@ -66,7 +66,7 @@ A pipeline é composta por **dois workflows** independentes que colaboram entre 
 | `push` | `tests.yml` | A cada push nas branches `main` ou `develop` |
 | `pull_request` | `tests.yml` | Ao abrir ou atualizar um PR contra `main`/`develop` |
 | `workflow_dispatch` | Ambos | Execução manual pelo GitHub UI ou API |
-| `schedule` | `tests.yml` | Toda segunda-feira às 07:00 BRT (cron: `0 10 * * 1`) |
+| `schedule` | `tests.yml` | A cada 20 minutos (cron: `*/20 * * * 0`) |
 | `push` (main) | `pages.yml` | A cada push aprovado na branch `main` |
 
 ---
@@ -358,8 +358,8 @@ npm run test:ci
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/SEU_USUARIO/usadosdequalidade.git
-cd usadosdequalidade
+https://github.com/ricardosantosqa/pgats-test-ci.git
+cd pgats-test-ci
 
 # 2. Instale as dependências
 npm install
