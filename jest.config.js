@@ -21,7 +21,7 @@ module.exports = {
   // Formatos de relatório gerados na pasta coverage/
   coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
 
-  testMatch: ['**/*.test.js'],
+  testMatch: ['<rootDir>/test/**/*.test.js'],
   verbose: true,
 
   // Configuração do reporter JUnit para integração com GitHub Actions

@@ -36,7 +36,8 @@
 - ✅ Testes automatizados com Jest
 - 📊 Relatório de cobertura de código
 - 🚀 Deploy automático para GitHub Pages
-- 📅 Execução agendada a cada 20 minutos
+- 📅 Execução agendada todos os dias a cada 30 minutos
+- 📧 Notificação por email ao final da execução
 - 💬 Feedback automático em Pull Requests
 
 ---
@@ -67,11 +68,11 @@ A pipeline é composta por **dois workflows** independentes que colaboram entre 
 | `push` | `tests.yml` | A cada push nas branches `main` ou `develop` |
 | `pull_request` | `tests.yml` | Ao abrir ou atualizar um PR contra `main`/`develop` |
 | `workflow_dispatch` | Ambos | Execução manual pelo GitHub UI ou API |
-| `schedule` | `tests.yml` | A cada 20 minutos (cron: `*/20 * * * *`) |
+| `schedule` | `tests.yml` | Todos os dias a cada 30 minutos (cron: `*/30 * * * *`) |
 | `push` (main) | `pages.yml` | A cada push aprovado na branch `main` |
 
-> ⚠️ **Atenção ao consumo de minutos:** o agendamento `*/20 * * * *` executa o
-> workflow **72 vezes por dia**. Em repositórios privados isso consome a cota
+> ⚠️ **Atenção ao consumo de minutos:** o agendamento `*/30 * * * *` executa o
+> workflow **48 vezes por dia**. Em repositórios privados isso consome a cota
 > gratuita de minutos do GitHub Actions rapidamente. Em repositórios públicos
 > o uso é ilimitado, mas considere aumentar o intervalo (ex.: `*/60 * * * *`)
 > em projetos reais.
@@ -94,7 +95,8 @@ jobs:
       6. Step Summary                 ← tabela de cobertura no resumo da execução
       7. Upload artefatos             ← coverage/ + junit.xml (30 dias)
       8. Comentar no PR               ← feedback automático com link para execução
-      9. Resultado final              ← falha o job se os testes não passaram
+      9. Enviar email                 ← notificação opcional por SMTP
+      10. Resultado final             ← falha o job se os testes não passaram
 ```
 
 **Diagrama de fluxo:**
@@ -143,7 +145,7 @@ push main
     │
     ▼
  [build]
-    │  python scripts/build_catalog.py
+    │  python3 scripts/build_catalog.py
     │  cp -R index.html styles.css app.js catalog.json products logos site/
     ▼
  [deploy]
@@ -158,7 +160,7 @@ push main
 
 ## 📊 Relatório de Testes
 
-A pipeline gera relatórios em três locais diferentes:
+A pipeline gera relatórios e notificações em cinco canais:
 
 ### 1. Aba "Checks" (dorny/test-reporter)
 
@@ -209,6 +211,25 @@ Quando o trigger é um Pull Request, a pipeline posta automaticamente um coment�
 > cobertura está disponível nos artefatos da execução.
 ```
 
+### 5. Notificação por email
+
+A workflow também tenta enviar um email ao final da execução, com status, branch, commit e link direto para o relatório da execução.
+
+O GitHub Actions não expõe o email privado da conta do repositório por segurança. Para usar o email da própria conta, cadastre esse endereço no secret `NOTIFICATION_EMAIL`.
+
+Secrets necessários em `Settings → Secrets and variables → Actions`:
+
+| Secret | Valor |
+|--------|-------|
+| `SMTP_HOST` | Servidor SMTP, ex.: `smtp.gmail.com` |
+| `SMTP_PORT` | Porta SMTP, normalmente `587` ou `465` |
+| `SMTP_USERNAME` | Usuário/email usado para autenticar no SMTP |
+| `SMTP_PASSWORD` | Senha ou app password do provedor de email |
+| `NOTIFICATION_EMAIL` | Email que receberá a notificação |
+| `NOTIFICATION_FROM` | Remetente opcional; se vazio, usa `SMTP_USERNAME` |
+
+Se esses secrets não estiverem configurados, a etapa de email é ignorada sem quebrar a pipeline.
+
 ---
 
 ## 🧠 Conceitos Utilizados
@@ -242,11 +263,11 @@ Quando o trigger é um Pull Request, a pipeline posta automaticamente um coment�
 │ │ │ ┌ mês (1-12)
 │ │ │ │ ┌ dia da semana (0=Dom … 6=Sab)
 │ │ │ │ │
-*/20 * * * *
+*/30 * * * *
 ```
 
-`*/20 * * * *` significa **"a cada 20 minutos, todos os dias"** — o workflow
-`tests.yml` é disparado automaticamente nos minutos `00`, `20` e `40` de cada
+`*/30 * * * *` significa **"a cada 30 minutos, todos os dias"** — o workflow
+`tests.yml` é disparado automaticamente nos minutos `00` e `30` de cada
 hora, garantindo que problemas de degradação (dependências desatualizadas,
 APIs externas, regressões silenciosas) sejam detectados mesmo sem novos
 commits.
@@ -319,8 +340,10 @@ usadosdequalidade/
 ├── scripts/
 │   └── build_catalog.py    # Gera catalog.json a partir dos produtos
 │
+├── test/                   # Testes automatizados
+│   └── app.test.js         # Suite de testes Jest
+│
 ├── app.js                  # Lógica principal do site
-├── app.test.js             # Suite de testes Jest
 ├── catalog.json            # Catálogo de produtos (gerado)
 ├── index.html              # Página principal
 ├── styles.css              # Estilos globais

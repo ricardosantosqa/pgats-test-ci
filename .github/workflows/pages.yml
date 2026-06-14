@@ -40,8 +40,62 @@ jobs:
       - name: 📦 Instalar dependências
         run: npm install
 
-      - name: 🧪 Executar testes
-        run: npm test -- --passWithNoTests
+      - name: 🐍 Setup Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: 📂 Gerar catálogo de produtos
+        run: npm run build:catalog
+
+      - name: 🧪 Executar testes unitários
+        id: unit_tests
+        continue-on-error: true
+        run: |
+          mkdir -p reports
+          npm run test:unit:ci -- --runInBand
+        env:
+          JEST_JUNIT_OUTPUT_DIR: '.'
+          JEST_JUNIT_OUTPUT_NAME: 'junit.xml'
+
+      - name: 🎭 Instalar navegadores do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: 🎭 Executar testes funcionais
+        id: functional_tests
+        continue-on-error: true
+        run: npm run test:functional
+
+      - name: 📊 Resumo dos testes de deploy
+        if: always()
+        env:
+          UNIT_OUTCOME: ${{ steps.unit_tests.outcome }}
+          FUNCTIONAL_OUTCOME: ${{ steps.functional_tests.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/ci_test_summary.js
+
+      - name: 📁 Upload artefatos de teste
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: deploy-test-report-${{ github.run_number }}
+          path: |
+            coverage/
+            junit.xml
+            reports/
+            playwright-report/
+            test-results/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: 🚦 Resultado final dos testes
+        if: always()
+        run: |
+          if [ "${{ steps.unit_tests.outcome }}" != "success" ] || [ "${{ steps.functional_tests.outcome }}" != "success" ]; then
+            echo "❌ Deploy bloqueado: testes unitários ou funcionais falharam."
+            exit 1
+          fi
+          echo "✅ Testes de deploy finalizados com sucesso."
 
   # ── Job 2: Build ──────────────────────────────────────────────────────────
   build:
@@ -67,7 +121,7 @@ jobs:
           python-version: '3.12'
 
       - name: 📂 Gerar catálogo de produtos
-        run: python scripts/build_catalog.py
+        run: python3 scripts/build_catalog.py
 
       - name: 🗂️ Preparar site estático
         run: |
@@ -82,6 +136,13 @@ jobs:
         with:
           path: site
 
+      - name: 📊 Resumo do build
+        run: |
+          echo "## Resultado do Build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Build realizado com sucesso: 8 steps concluídos sem erros no job build." >> $GITHUB_STEP_SUMMARY
+          echo "- Artefato do GitHub Pages publicado para o job de deploy." >> $GITHUB_STEP_SUMMARY
+
   # ── Job 3: Deploy ─────────────────────────────────────────────────────────
   deploy:
     name: 🌐 Publicar no GitHub Pages
@@ -94,3 +155,15 @@ jobs:
       - name: 🚀 Deploy para GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: 📊 Resumo do deploy
+        if: always()
+        run: |
+          echo "## Resultado do Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.deployment.outcome }}" = "success" ]; then
+            echo "- Deploy realizado com sucesso: 1 step concluído sem erros no job deploy." >> $GITHUB_STEP_SUMMARY
+            echo "- URL publicada: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Deploy finalizado com falha: verifique os logs do step de publicação." >> $GITHUB_STEP_SUMMARY
+          fi

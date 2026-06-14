@@ -4,6 +4,9 @@ node_modules/
 # Relatórios de teste e cobertura (gerados pelo CI)
 coverage/
 junit.xml
+reports/
+playwright-report/
+test-results/
 
 # Build do site (gerado pelo workflow de deploy)
 site/

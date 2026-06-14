@@ -4,7 +4,7 @@
 #   • push para main ou develop
 #   • pull_request contra main ou develop
 #   • disparo manual (workflow_dispatch)
-#   • agendamento 
+#   • agendamento a cada 30 minutos
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: 🧪 Testes Automatizados
@@ -32,9 +32,9 @@ on:
           - 'true'
           - 'false'
 
-  # Execução agendada: a cada 20 minutos
+  # Execução agendada: todos os dias, a cada 30 minutos
   schedule:
-    - cron: '*/20 * * * *'
+    - cron: '*/30 * * * *'
 
 # ── Permissões mínimas necessárias ────────────────────────────────────────────
 permissions:
@@ -73,17 +73,21 @@ jobs:
       - name: 📦 Instalar dependências
         run: npm install
 
-      # 4. Testes + cobertura + relatório JUnit
+      - name: 📂 Gerar catálogo de produtos
+        run: npm run build:catalog
+
+      # 4. Testes unitários + cobertura + relatório JUnit
       #    continue-on-error garante que os passos seguintes (publicação do
       #    relatório e upload de artefatos) executem mesmo se algum teste falhar.
       #    A falha real do job é refletida no step "Resultado final dos testes".
-      - name: 🧪 Executar testes com cobertura
-        id: run_tests
+      - name: 🧪 Executar testes unitários com cobertura
+        id: unit_tests
         continue-on-error: true
         run: |
+          mkdir -p reports
           EXTRA=""
           if [ "${{ github.event.inputs.debug }}" = "true" ]; then EXTRA="--verbose"; fi
-          npm test -- --coverage $EXTRA
+          npm run test:unit:ci -- --runInBand $EXTRA
         env:
           JEST_JUNIT_OUTPUT_DIR: '.'
           JEST_JUNIT_OUTPUT_NAME: 'junit.xml'
@@ -98,44 +102,34 @@ jobs:
           reporter: jest-junit
           fail-on-error: false   # não re-falha; o step "Resultado final" já sinaliza a falha
 
-      # 6. Resumo rico no GitHub Step Summary
-      - name: 📊 Resumo de cobertura no Step Summary
+      - name: 🎭 Instalar navegadores do Playwright
+        run: npx playwright install --with-deps chromium
+
+      # 6. Testes funcionais Playwright
+      - name: 🎭 Executar testes funcionais
+        id: functional_tests
+        continue-on-error: true
+        run: npm run test:functional
+
+      - name: 📋 Publicar relatório funcional (Playwright)
         if: always()
-        run: |
-          echo "## 🧪 Resultado dos Testes" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+        uses: dorny/test-reporter@v3
+        with:
+          name: 'Relatório Playwright'
+          path: 'reports/functional-junit.xml'
+          reporter: java-junit
+          fail-on-error: false
 
-          if [ "${{ steps.run_tests.outcome }}" = "success" ]; then
-            echo "### ✅ Todos os testes passaram!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ Há testes falhando — veja os logs acima." >> $GITHUB_STEP_SUMMARY
-          fi
+      # 7. Resumo claro no GitHub Step Summary
+      - name: 📊 Resumo dos totais no Step Summary
+        if: always()
+        env:
+          UNIT_OUTCOME: ${{ steps.unit_tests.outcome }}
+          FUNCTIONAL_OUTCOME: ${{ steps.functional_tests.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/ci_test_summary.js
 
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Branch  | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit  | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Runner  | \`${{ runner.os }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Exibe resumo de cobertura se o JSON estiver disponível
-          if [ -f coverage/coverage-summary.json ]; then
-            echo "### 📈 Cobertura de Código" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Métrica | % Cobertura |" >> $GITHUB_STEP_SUMMARY
-            echo "|---------|------------|" >> $GITHUB_STEP_SUMMARY
-            node -e "
-              const s = require('./coverage/coverage-summary.json').total;
-              console.log('| Statements | ' + s.statements.pct + '% |');
-              console.log('| Branches   | ' + s.branches.pct   + '% |');
-              console.log('| Functions  | ' + s.functions.pct  + '% |');
-              console.log('| Lines      | ' + s.lines.pct      + '% |');
-            " >> $GITHUB_STEP_SUMMARY
-          fi
-
-      # 7. Artefatos: relatório de cobertura HTML + JUnit XML
+      # 8. Artefatos: relatório de cobertura, JUnit XML e Playwright HTML
       #    Retidos por 30 dias; baixáveis na aba "Artifacts" da execução
       - name: 📁 Upload artefatos de teste
         if: always()
@@ -145,16 +139,21 @@ jobs:
           path: |
             coverage/
             junit.xml
+            reports/
+            playwright-report/
+            test-results/
           retention-days: 30
           if-no-files-found: warn
 
-      # 8. Comentário automático em Pull Requests
+      # 9. Comentário automático em Pull Requests
       - name: 💬 Comentar resultado no PR
         if: github.event_name == 'pull_request' && always()
         uses: actions/github-script@v7
         with:
           script: |
-            const success = '${{ steps.run_tests.outcome }}' === 'success';
+            const unitSuccess = '${{ steps.unit_tests.outcome }}' === 'success';
+            const functionalSuccess = '${{ steps.functional_tests.outcome }}' === 'success';
+            const success = unitSuccess && functionalSuccess;
             const icon    = success ? '✅' : '❌';
             const status  = success ? 'PASSOU' : 'FALHOU';
             const sha     = context.sha.substring(0, 7);
@@ -166,6 +165,8 @@ jobs:
               `| Campo | Valor |`,
               `|-------|-------|`,
               `| Status  | **${status}** |`,
+              `| Unitários | ${unitSuccess ? 'PASSOU' : 'FALHOU'} |`,
+              `| Funcionais | ${functionalSuccess ? 'PASSOU' : 'FALHOU'} |`,
               `| Commit  | \`${sha}\` |`,
               `| Execução | [#${run}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |`,
               '',
@@ -181,14 +182,93 @@ jobs:
               body,
             });
 
-      # 9. Resultado final: faz o job falhar de fato se os testes falharam.
+      # 10. Notificação por email
+      #    O GitHub Actions não expõe o email privado da conta/repositório.
+      #    Configure NOTIFICATION_EMAIL com o email da própria conta do repositório.
+      - name: 📧 Enviar notificação por email
+        if: always()
+        continue-on-error: true
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          NOTIFICATION_FROM: ${{ secrets.NOTIFICATION_FROM }}
+          UNIT_OUTCOME: ${{ steps.unit_tests.outcome }}
+          FUNCTIONAL_OUTCOME: ${{ steps.functional_tests.outcome }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SERVER_URL: ${{ github.server_url }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USERNAME" ] || [ -z "$SMTP_PASSWORD" ] || [ -z "$NOTIFICATION_EMAIL" ]; then
+            echo "Notificação por email ignorada: configure SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD e NOTIFICATION_EMAIL nos secrets do repositório."
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import os
+          import smtplib
+          import ssl
+          from email.message import EmailMessage
+
+          unit_outcome = os.environ["UNIT_OUTCOME"]
+          functional_outcome = os.environ["FUNCTIONAL_OUTCOME"]
+          passed = unit_outcome == "success" and functional_outcome == "success"
+          status = "PASSOU" if passed else "FALHOU"
+          icon = "✅" if passed else "❌"
+          repo = os.environ["REPOSITORY"]
+          run_url = f'{os.environ["SERVER_URL"]}/{repo}/actions/runs/{os.environ["RUN_ID"]}'
+          commit = os.environ["COMMIT_SHA"][:7]
+
+          message = EmailMessage()
+          message["Subject"] = f"{icon} Testes Automatizados - {status} - {repo} #{os.environ['RUN_NUMBER']}"
+          message["From"] = os.environ.get("NOTIFICATION_FROM") or os.environ["SMTP_USERNAME"]
+          message["To"] = os.environ["NOTIFICATION_EMAIL"]
+          message.set_content(f"""Resultado dos Testes Automatizados: {status}
+
+          Repositório: {repo}
+          Execução: #{os.environ["RUN_NUMBER"]}
+          Trigger: {os.environ["EVENT_NAME"]}
+          Branch: {os.environ["REF_NAME"]}
+          Commit: {commit}
+          Unitários: {unit_outcome}
+          Funcionais: {functional_outcome}
+
+          Relatório da execução:
+          {run_url}
+
+          A cobertura e o junit.xml ficam disponíveis nos artefatos da pipeline.
+          """)
+
+          host = os.environ["SMTP_HOST"]
+          port = int(os.environ.get("SMTP_PORT") or "587")
+          username = os.environ["SMTP_USERNAME"]
+          password = os.environ["SMTP_PASSWORD"]
+
+          if port == 465:
+            with smtplib.SMTP_SSL(host, port, context=ssl.create_default_context()) as smtp:
+              smtp.login(username, password)
+              smtp.send_message(message)
+          else:
+            with smtplib.SMTP(host, port) as smtp:
+              smtp.starttls(context=ssl.create_default_context())
+              smtp.login(username, password)
+              smtp.send_message(message)
+          PY
+
+      # 11. Resultado final: faz o job falhar de fato se os testes falharam.
       #    Executado por último para garantir que relatório, resumo, artefatos
-      #    e comentário no PR já tenham sido publicados antes do job falhar.
+      #    comentário no PR e email já tenham sido publicados antes do job falhar.
       - name: 🚦 Resultado final dos testes
         if: always()
         run: |
-          if [ "${{ steps.run_tests.outcome }}" != "success" ]; then
-            echo "❌ A etapa de testes falhou. Verifique o relatório e os artefatos publicados."
+          if [ "${{ steps.unit_tests.outcome }}" != "success" ] || [ "${{ steps.functional_tests.outcome }}" != "success" ]; then
+            echo "❌ Uma etapa de testes falhou. Verifique o relatório e os artefatos publicados."
             exit 1
           fi
-          echo "✅ Testes executados com sucesso."
+          echo "✅ Testes unitários e funcionais executados com sucesso."

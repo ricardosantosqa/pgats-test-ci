@@ -39,10 +39,10 @@ const {
   currentPageMessage,
   getCatalogPath,
   applyTheme,
-} = require('./app.js');
+} = require('../app.js');
 
 
-// ─── TESTES ─────────────────────────────────────────────────────────────────
+// TESTES
 
 describe('Funções Utilitárias', () => {
   test('buildWhatsAppUrl deve criar URL correta do WhatsApp', () => {
@@ -317,6 +317,5 @@ describe('applyTheme', () => {
     expect(label.textContent).toBe('Tema escuro');
   });
 });
-
 
 
