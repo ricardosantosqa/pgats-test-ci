@@ -4,7 +4,7 @@
 #   • push para main ou develop
 #   • pull_request contra main ou develop
 #   • disparo manual (workflow_dispatch)
-#   • agendamento a cada 30 minutos
+#   • agendamento aos domingos, segundas e terças às 20h (America/Sao_Paulo)
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: 🧪 Testes Automatizados
@@ -32,9 +32,10 @@ on:
           - 'true'
           - 'false'
 
-  # Execução agendada: todos os dias, a cada 30 minutos
+  # Execução agendada: domingo, segunda e terça às 20h em America/Sao_Paulo.
+  # GitHub Actions usa UTC; 20h BRT (UTC-3) = 23h UTC.
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 23 * * 0,1,2'
 
 # ── Permissões mínimas necessárias ────────────────────────────────────────────
 permissions:
@@ -183,18 +184,21 @@ jobs:
             });
 
       # 10. Notificação por email
-      #    O GitHub Actions não expõe o email privado da conta/repositório.
-      #    Configure NOTIFICATION_EMAIL com o email da própria conta do repositório.
+      #    Para enviar ao email privado do dono do repositório, configure
+      #    NOTIFICATION_EMAIL nos secrets. Se não existir, a pipeline tenta usar
+      #    o email público do perfil GitHub do owner do repositório.
       - name: 📧 Enviar notificação por email
         if: always()
         continue-on-error: true
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
           NOTIFICATION_FROM: ${{ secrets.NOTIFICATION_FROM }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
           UNIT_OUTCOME: ${{ steps.unit_tests.outcome }}
           FUNCTIONAL_OUTCOME: ${{ steps.functional_tests.outcome }}
           REPOSITORY: ${{ github.repository }}
@@ -205,16 +209,51 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USERNAME" ] || [ -z "$SMTP_PASSWORD" ] || [ -z "$NOTIFICATION_EMAIL" ]; then
-            echo "Notificação por email ignorada: configure SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD e NOTIFICATION_EMAIL nos secrets do repositório."
+          if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USERNAME" ] || [ -z "$SMTP_PASSWORD" ]; then
+            echo "Notificação por email ignorada: configure SMTP_HOST, SMTP_USERNAME e SMTP_PASSWORD nos secrets do repositório."
             exit 0
           fi
 
           python3 - <<'PY'
           import os
+          import json
           import smtplib
           import ssl
+          import urllib.request
           from email.message import EmailMessage
+
+          def resolve_recipient():
+            configured = os.environ.get("NOTIFICATION_EMAIL", "").strip()
+            if configured:
+              return configured
+
+            owner = os.environ["REPOSITORY_OWNER"]
+            token = os.environ.get("GITHUB_TOKEN", "")
+            request = urllib.request.Request(
+              f"https://api.github.com/users/{owner}",
+              headers={
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {token}",
+                "X-GitHub-Api-Version": "2022-11-28",
+              },
+            )
+
+            try:
+              with urllib.request.urlopen(request, timeout=10) as response:
+                profile = json.load(response)
+            except Exception as error:
+              print(f"Não foi possível consultar email público do owner {owner}: {error}")
+              return ""
+
+            return (profile.get("email") or "").strip()
+
+          recipient = resolve_recipient()
+          if not recipient:
+            print(
+              "Notificação por email ignorada: o email público do dono do repositório "
+              "não está disponível. Configure o secret NOTIFICATION_EMAIL com o email da conta."
+            )
+            raise SystemExit(0)
 
           unit_outcome = os.environ["UNIT_OUTCOME"]
           functional_outcome = os.environ["FUNCTIONAL_OUTCOME"]
@@ -228,7 +267,7 @@ jobs:
           message = EmailMessage()
           message["Subject"] = f"{icon} Testes Automatizados - {status} - {repo} #{os.environ['RUN_NUMBER']}"
           message["From"] = os.environ.get("NOTIFICATION_FROM") or os.environ["SMTP_USERNAME"]
-          message["To"] = os.environ["NOTIFICATION_EMAIL"]
+          message["To"] = recipient
           message.set_content(f"""Resultado dos Testes Automatizados: {status}
 
           Repositório: {repo}
