@@ -1,0 +1,31 @@
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff8a5c;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#d46848;stop-opacity:0.05" />
+    </linearGradient>
+  </defs>
+  <rect width="300" height="300" fill="url(#g)"/>
+  <text x="150" y="140" font-size="48" text-anchor="middle" fill="#ff8a5c">☕</text>
+  <text x="150" y="200" font-size="12" font-weight="600" text-anchor="middle" fill="#d46848">Em bancada</text>
+</svg>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#3c1711" />
+      <stop offset="100%" stop-color="#ff8a5c" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" rx="48" fill="url(#bg)" />
+  <g fill="none" stroke="rgba(255,255,255,0.35)">
+    <path d="M180 690c120-210 300-320 540-330 140-6 236 23 300 62" stroke-width="18" stroke-linecap="round"/>
+    <path d="M220 260c80-70 162-108 260-120 208-25 415 63 510 171" stroke-width="12" stroke-linecap="round"/>
+  </g>
+  <rect x="150" y="150" width="900" height="600" rx="48" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" />
+  <text x="180" y="255" fill="#ffffff" font-size="66" font-family="Inter, Arial, sans-serif" font-weight="800">Cafeteira Nespresso Essenza Mini</text>
+  <text x="180" y="330" fill="#efe8ff" font-size="32" font-family="Inter, Arial, sans-serif">Reservatório limpo, aquecimento rápido e ideal para cozinhas pequenas ou escritório.</text>
+  <text x="180" y="420" fill="#ffffff" font-size="30" font-family="Inter, Arial, sans-serif">Compacta, elegante e pronta para cafés rápidos com cápsulas originais.</text>
+  <circle cx="915" cy="290" r="120" fill="#f4c95d" opacity="0.25" />
+  <rect x="180" y="500" width="360" height="150" rx="28" fill="rgba(10,10,18,0.22)" />
+  <text x="210" y="575" fill="#ffffff" font-size="40" font-family="Inter, Arial, sans-serif" font-weight="700">R$ 359,00</text>
+  <text x="210" y="625" fill="#efe8ff" font-size="22" font-family="Inter, Arial, sans-serif">Retirada em São Judas</text>
+</svg>

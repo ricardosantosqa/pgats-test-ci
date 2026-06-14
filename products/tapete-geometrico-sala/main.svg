@@ -1,0 +1,39 @@
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a66cff;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#7b39ff;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+  <rect width="300" height="300" fill="url(#grad)"/>
+  <!-- Tapete base -->
+  <rect x="50" y="80" width="200" height="160" fill="#9b6bff" opacity="0.6" rx="4"/>
+  <!-- Padrão geométrico -->
+  <line x1="80" y1="100" x2="220" y2="100" stroke="#cabfe3" stroke-width="2" opacity="0.8"/>
+  <line x1="75" y1="140" x2="225" y2="140" stroke="#cabfe3" stroke-width="2" opacity="0.6"/>
+  <line x1="80" y1="180" x2="220" y2="180" stroke="#cabfe3" stroke-width="2" opacity="0.8"/>
+  <line x1="75" y1="220" x2="225" y2="220" stroke="#cabfe3" stroke-width="2" opacity="0.6"/>
+  <!-- Sombra -->
+  <ellipse cx="150" cy="260" rx="70" ry="12" fill="#000" opacity="0.1"/>
+</svg>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#a66cff" />
+      <stop offset="100%" stop-color="#221235" />
+    </linearGradient>
+    <radialGradient id="shine" cx="65%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.75)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="900" rx="48" fill="url(#bg)" />
+  <rect x="70" y="70" width="1060" height="760" rx="40" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.14)" />
+  <circle cx="900" cy="180" r="180" fill="#e6d8ff" opacity="0.18" />
+  <circle cx="300" cy="720" r="210" fill="#ffffff" opacity="0.08" />
+  <rect x="170" y="180" width="860" height="340" rx="36" fill="rgba(10,10,18,0.18)" />
+  <rect x="230" y="240" width="740" height="220" rx="28" fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.14)" />
+  <text x="170" y="610" fill="#ffffff" font-size="72" font-family="Inter, Arial, sans-serif" font-weight="800">Tapete geométrico para sala</text>
+  <text x="170" y="680" fill="#f7f2ff" font-size="34" font-family="Inter, Arial, sans-serif">Peça decorativa higienizada com textura macia e visual contemporâneo.</text>
+  <text x="170" y="742" fill="#ffffff" font-size="52" font-family="Inter, Arial, sans-serif" font-weight="700">R$ 249,00</text>
+  <text x="170" y="794" fill="#f7f2ff" font-size="24" font-family="Inter, Arial, sans-serif">Usados de Qualidade • Estação Metrô São Judas</text>
+</svg>

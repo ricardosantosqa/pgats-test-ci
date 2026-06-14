@@ -1,0 +1,96 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline de Deploy — GitHub Pages
+#
+# Executa somente após os testes passarem (via needs: test).
+# Publicação ocorre apenas para pushes em main ou disparo manual.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: 🚀 Deploy — GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # ── Job 1: Testes ─────────────────────────────────────────────────────────
+  test:
+    name: ✅ Testes de validação
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependências
+        run: npm ci
+
+      - name: 🧪 Executar testes
+        run: npm test -- --passWithNoTests --forceExit
+
+  # ── Job 2: Build ──────────────────────────────────────────────────────────
+  build:
+    name: 🔨 Build do site
+    runs-on: ubuntu-latest
+    needs: test   # só executa se os testes passarem
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Instalar dependências
+        run: npm ci
+
+      - name: 🐍 Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📂 Gerar catálogo de produtos
+        run: python scripts/build_catalog.py
+
+      - name: 🗂️ Preparar site estático
+        run: |
+          mkdir -p site
+          cp -R index.html styles.css app.js catalog.json products logos site/
+
+      - name: ⚙️ Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 📤 Upload artefato Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  # ── Job 3: Deploy ─────────────────────────────────────────────────────────
+  deploy:
+    name: 🌐 Publicar no GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: 🚀 Deploy para GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

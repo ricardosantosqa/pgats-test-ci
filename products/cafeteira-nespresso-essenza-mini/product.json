@@ -1,0 +1,18 @@
+{
+  "slug": "cafeteira-nespresso-essenza-mini",
+  "order": 3,
+  "title": "Cafeteira Nespresso Essenza Mini",
+  "shortDescription": "Compacta, elegante e pronta para cafés rápidos com cápsulas originais.",
+  "description": "Cafeteira compacta com aquecimento rápido, reservatório higienizado e ótimo estado de conservação. Ideal para cozinhas pequenas, escritórios e para quem quer praticidade sem abrir mão do sabor.",
+  "price": "R$ 359,00",
+  "category": "casa",
+  "pickupLocation": "Estação Metrô São Judas",
+  "paymentMethods": ["PIX", "Transferência", "Dinheiro"],
+  "sizes": [],
+  "mainImage": "./main.svg",
+  "gallery": [
+    { "src": "./main.svg", "alt": "Cafeteira Nespresso Essenza Mini com acabamento moderno" },
+    { "src": "./detail-1.svg", "alt": "Detalhe do uso da cafeteira Nespresso Essenza Mini" },
+    { "src": "./detail-2.svg", "alt": "Informação visual sobre o estado revisado da cafeteira Nespresso Essenza Mini" }
+  ]
+}

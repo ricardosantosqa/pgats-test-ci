@@ -1,0 +1,18 @@
+{
+  "slug": "monitor-lg-ultrawide-29",
+  "order": 2,
+  "title": "Monitor LG UltraWide 29\"",
+  "shortDescription": "Tela IPS revisada com ótimo espaço para produtividade e entretenimento.",
+  "description": "Monitor LG UltraWide de 29 polegadas com proporção 21:9, ideal para multitarefa, edição e estudos. Item revisado, com excelente definição, base estável e pronto para integrar um setup produtivo.",
+  "price": "R$ 1.149,00",
+  "category": "tecnologia",
+  "pickupLocation": "Estação Metrô São Judas",
+  "paymentMethods": ["PIX", "Transferência", "Dinheiro"],
+  "sizes": ["29 polegadas", "Formato 21:9"],
+  "mainImage": "./main.svg",
+  "gallery": [
+    { "src": "./main.svg", "alt": "Monitor LG UltraWide 29 polegadas em composição tecnológica" },
+    { "src": "./detail-1.svg", "alt": "Detalhes do monitor LG UltraWide revisado" },
+    { "src": "./detail-2.svg", "alt": "Arte destacando a qualidade validada do monitor LG UltraWide" }
+  ]
+}

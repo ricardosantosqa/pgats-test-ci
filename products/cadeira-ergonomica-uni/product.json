@@ -1,0 +1,18 @@
+{
+  "slug": "cadeira-ergonomica-uni",
+  "order": 1,
+  "title": "Cadeira ergonômica Uni",
+  "shortDescription": "Conforto para home office com estrutura revisada e rodízios silenciosos.",
+  "description": "Cadeira com encosto em tela respirável, ajuste de altura, base metálica reforçada e apoio de braços acolchoado. Revisada para oferecer conforto diário em home office, estudos ou setup profissional.",
+  "price": "R$ 699,00",
+  "category": "estilo",
+  "pickupLocation": "Estação Metrô São Judas",
+  "paymentMethods": ["PIX", "Transferência", "Dinheiro"],
+  "sizes": ["Altura ajustável 96-106 cm", "Assento 50 x 49 cm"],
+  "mainImage": "./main.svg",
+  "gallery": [
+    { "src": "./main.svg", "alt": "Cadeira ergonômica Uni em destaque sobre fundo roxo" },
+    { "src": "./detail-1.svg", "alt": "Detalhe da estrutura revisada da cadeira ergonômica Uni" },
+    { "src": "./detail-2.svg", "alt": "Informações visuais sobre o estado revisado da cadeira ergonômica Uni" }
+  ]
+}

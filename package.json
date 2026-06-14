@@ -1,0 +1,27 @@
+{
+  "name": "usados-de-qualidade",
+  "version": "1.0.0",
+  "description": "Site estático de vendas com testes automatizados e CI/CD",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --coverage --reporters=default --reporters=jest-junit",
+    "build:catalog": "python scripts/build_catalog.py",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": [
+    "ci-cd",
+    "github-actions",
+    "testing",
+    "automation"
+  ],
+  "author": "Ricardo Santos",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jest-junit": "^16.0.0"
+  }
+}
