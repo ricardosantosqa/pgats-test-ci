@@ -4,7 +4,7 @@
 #   • push para main ou develop
 #   • pull_request contra main ou develop
 #   • disparo manual (workflow_dispatch)
-#   • agendamento semanal toda segunda-feira às 07:00 BRT (10:00 UTC)
+#   • agendamento 
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: 🧪 Testes Automatizados
@@ -34,7 +34,7 @@ on:
 
   # Execução agendada: a cada 20 minutos
   schedule:
-    - cron: '*/20 * * * 0'
+    - cron: '*/20 * * * *'
 
 # ── Permissões mínimas necessárias ────────────────────────────────────────────
 permissions:
@@ -56,13 +56,13 @@ jobs:
     steps:
       # 1. Código-fonte
       - name: 📥 Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       # 2. Ambiente Node.js com cache automático do npm
-      - name: 🟢 Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: 🟢 Setup Node.js 24
+        uses: actions/setup-node@v4.4.0
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       # 3. Instalar dependências (incluindo jest-junit)
@@ -70,9 +70,11 @@ jobs:
         run: npm ci
 
       # 4. Testes + cobertura + relatório JUnit
-      #    A flag --forceExit garante que o processo sai mesmo com handles abertos
       - name: 🧪 Executar testes com cobertura
-        run: npm test -- --coverage --forceExit
+        run: |
+          EXTRA=""
+          if [ "${{ github.event.inputs.debug }}" = "true" ]; then EXTRA="--verbose"; fi
+          npm test -- --coverage --forceExit $EXTRA
         env:
           JEST_JUNIT_OUTPUT_DIR: '.'
           JEST_JUNIT_OUTPUT_NAME: 'junit.xml'
@@ -80,7 +82,7 @@ jobs:
       # 5. Publica o relatório JUnit na aba "Checks" do GitHub
       - name: 📋 Publicar relatório de testes (Test Reporter)
         if: always()   # executa mesmo se os testes falharem
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v1.9.1
         with:
           name: 'Relatório Jest'
           path: 'junit.xml'
@@ -128,7 +130,7 @@ jobs:
       #    Retidos por 30 dias; baixáveis na aba "Artifacts" da execução
       - name: 📁 Upload artefatos de teste
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: test-report-${{ github.run_number }}
           path: |
